@@ -13,8 +13,18 @@ function App() {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
 
-  // ICE servers for STUN
-  const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  // ICE servers for STUN and TURN (TURN is required for internet/NAT traversal)
+  const servers = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      {
+        urls: 'turn:relay.metered.ca:80',
+        username: 'openai',
+        credential: 'openai'
+      }
+      // For production, use your own TURN server or a paid service
+    ]
+  };
 
   // Create a new room
   const createRoom = async () => {
@@ -92,8 +102,10 @@ function App() {
       snapshot.docChanges().forEach(change => {
         if (change.type === 'added') {
           const data = change.doc.data();
-          console.log('Remote ICE candidate:', data);
-          pc.addIceCandidate(new RTCIceCandidate(data)).catch(e => console.error('Error adding ICE candidate', e));
+          console.log('Remote ICE candidate received:', data);
+          pc.addIceCandidate(new RTCIceCandidate(data)).then(() => {
+            console.log('Remote ICE candidate added to connection');
+          }).catch(e => console.error('Error adding ICE candidate', e));
         }
       });
     });
@@ -103,7 +115,7 @@ function App() {
       if (event.candidate) {
         try {
           await addDoc(isCaller ? offerCandidates : answerCandidates, event.candidate.toJSON());
-          console.log('Local ICE candidate added:', event.candidate);
+          console.log('Local ICE candidate sent to Firestore:', event.candidate);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           setError('Failed to add ICE candidate: ' + message);
@@ -159,34 +171,47 @@ function App() {
       await updateDoc(roomRef, { answer });
       setStatus('Answer sent. Waiting for connection...');
     }
+    // TODO: Clean up signaling data (room and candidate collections) after the call ends.
   };
 
   return (
-    <div className="App">
-      <h2>Two-Person Video Call</h2>
-      {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
-      {status && <div style={{ color: 'green', marginBottom: 8 }}>{status}</div>}
-      {!inRoom ? (
-        <div>
-          <button onClick={createRoom}>Create Room</button>
-          <div>
-            <input
-              value={roomId}
-              onChange={e => setRoomId(e.target.value)}
-              placeholder="Enter Room ID"
-            />
-            <button onClick={joinRoom} disabled={!roomId}>Join Room</button>
+    <div className="App" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 100%)', padding: 0 }}>
+      <header style={{ padding: '2rem 0 1rem 0', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.5rem', margin: 0, color: '#3b82f6', letterSpacing: 1 }}>WebRTC Video Call</h1>
+        <p style={{ color: '#64748b', marginTop: 8 }}>Connect with a friend using Room ID</p>
+      </header>
+      <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        {error && <div style={{ color: 'red', marginBottom: 8, fontWeight: 500 }}>{error}</div>}
+        {status && <div style={{ color: 'green', marginBottom: 8 }}>{status}</div>}
+        {!inRoom ? (
+          <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px #0001', padding: 32 }}>
+            <button style={{ width: '100%', marginBottom: 16, background: '#3b82f6', color: '#fff', fontWeight: 600, fontSize: 18 }} onClick={createRoom}>Create Room</button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                value={roomId}
+                onChange={e => setRoomId(e.target.value)}
+                placeholder="Enter Room ID"
+                style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 16 }}
+              />
+              <button style={{ background: '#10b981', color: '#fff', fontWeight: 600, borderRadius: 8, padding: '10px 18px', fontSize: 16 }} onClick={joinRoom} disabled={!roomId}>Join</button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div>
-          <p>Room ID: {roomId}</p>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <video ref={localVideoRef} autoPlay playsInline muted width={300} height={200} />
-            <video ref={remoteVideoRef} autoPlay playsInline width={300} height={200} />
+        ) : (
+          <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 2px 16px #0001', padding: 32 }}>
+            <div style={{ marginBottom: 16, color: '#3b82f6', fontWeight: 600 }}>Room ID: <span style={{ color: '#0f172a' }}>{roomId}</span></div>
+            <div style={{ display: 'flex', gap: 24, justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <video ref={localVideoRef} autoPlay playsInline muted width={240} height={180} style={{ borderRadius: 12, border: '3px solid #3b82f6', background: '#e0e7ff' }} />
+                <span style={{ marginTop: 8, color: '#3b82f6', fontWeight: 500 }}>You</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <video ref={remoteVideoRef} autoPlay playsInline width={240} height={180} style={{ borderRadius: 12, border: '3px solid #10b981', background: '#f0fdfa' }} />
+                <span style={{ marginTop: 8, color: '#10b981', fontWeight: 500 }}>Friend</span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
