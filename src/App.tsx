@@ -162,41 +162,31 @@ function App() {
   };
 
   return (
-    <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%)' }}>
-      <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, minWidth: 350, maxWidth: 420, margin: 24 }}>
-        <h2 style={{ marginBottom: 24, color: '#3b82f6', letterSpacing: 1 }}>Two-Person Video Call</h2>
-        {error && <div style={{ color: '#ef4444', marginBottom: 8, fontWeight: 500 }}>{error}</div>}
-        {status && <div style={{ color: '#22c55e', marginBottom: 8, fontWeight: 500 }}>{status}</div>}
-        {!inRoom ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <button style={{ background: '#3b82f6', color: '#fff', fontWeight: 600, border: 'none', borderRadius: 8, padding: '12px 0', fontSize: 18, marginBottom: 8 }} onClick={createRoom}>Create Room</button>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                value={roomId}
-                onChange={e => setRoomId(e.target.value)}
-                placeholder="Enter Room ID"
-                style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #d1d5db', fontSize: 16 }}
-              />
-              <button style={{ background: '#6366f1', color: '#fff', fontWeight: 600, border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 16 }} onClick={joinRoom} disabled={!roomId}>Join</button>
-            </div>
-          </div>
-        ) : (
+    <div className="App">
+      <h2>Two-Person Video Call</h2>
+      {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
+      {status && <div style={{ color: 'green', marginBottom: 8 }}>{status}</div>}
+      {!inRoom ? (
+        <div>
+          <button onClick={createRoom}>Create Room</button>
           <div>
-            <div style={{ marginBottom: 12, fontSize: 15, color: '#64748b' }}>Room ID: <span style={{ fontWeight: 600, color: '#3b82f6' }}>{roomId}</span></div>
-            <div style={{ display: 'flex', gap: 24, justifyContent: 'center', alignItems: 'center', marginTop: 16 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <video ref={localVideoRef} autoPlay playsInline muted width={260} height={180} style={{ borderRadius: 12, border: '2px solid #3b82f6', background: '#e0e7ff', marginBottom: 6, boxShadow: '0 2px 8px rgba(59,130,246,0.08)' }} />
-                <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>You</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <video ref={remoteVideoRef} autoPlay playsInline width={260} height={180} style={{ borderRadius: 12, border: '2px solid #6366f1', background: '#f1f5f9', marginBottom: 6, boxShadow: '0 2px 8px rgba(99,102,241,0.08)' }} />
-                <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>Remote</span>
-              </div>
-            </div>
+            <input
+              value={roomId}
+              onChange={e => setRoomId(e.target.value)}
+              placeholder="Enter Room ID"
+            />
+            <button onClick={joinRoom} disabled={!roomId}>Join Room</button>
           </div>
-        )}
-      </div>
-      <div style={{ color: '#64748b', fontSize: 13, marginTop: 12, opacity: 0.7 }}>Powered by WebRTC & Firebase</div>
+        </div>
+      ) : (
+        <div>
+          <p>Room ID: {roomId}</p>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <video ref={localVideoRef} autoPlay playsInline muted width={300} height={200} />
+            <video ref={remoteVideoRef} autoPlay playsInline width={300} height={200} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
